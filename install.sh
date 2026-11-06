@@ -18,7 +18,10 @@ set -euo pipefail
 
 BRAIA_REPO="${BRAIA_REPO:-superbrainpericiaadm/braia-claude-code-imersao}"
 BRAIA_REF="${BRAIA_REF:-main}"
-DEST="${BRAIA_DIR:-$HOME/Braia}"
+if [ -z "${BRAIA_DIR:-}" ] && [ -z "${HOME:-}" ]; then
+  echo "Erro: HOME não definido; informe a pasta: bash install.sh /caminho" >&2; exit 1
+fi
+DEST="${BRAIA_DIR:-${HOME:-}/Braia}"
 SEM_ANGELICA=0
 DESINSTALAR=0
 
@@ -26,11 +29,13 @@ for arg in "$@"; do
   case "$arg" in
     --sem-angelica) SEM_ANGELICA=1 ;;
     --desinstalar) DESINSTALAR=1 ;;
-    -h|--help) sed -n '2,17p' "$0" 2>/dev/null || true; exit 0 ;;
+    -h|--help) sed -n '2,16p' "$0" 2>/dev/null || true; exit 0 ;;
     -*) echo "Opção desconhecida: $arg" >&2; exit 2 ;;
     *) DEST="$arg" ;;
   esac
 done
+
+[ -n "$DEST" ] || { echo "Erro: pasta de destino vazia." >&2; exit 2; }
 
 MANAGED=(
   ".claude/settings.json"
@@ -44,6 +49,10 @@ MANAGED=(
 STAMP="$(date +%Y%m%d-%H%M%S)-$$"
 BACKUP="$DEST/.braia-backup/$STAMP"
 
+# Existe como arquivo ou como link (inclusive quebrado): deve ir para o backup,
+# para que cp nunca escreva através de um symlink fora da pasta da Braia.
+present() { [ -e "$DEST/$1" ] || [ -L "$DEST/$1" ]; }
+
 backup_file() {
   local rel="$1"
   mkdir -p "$BACKUP/$(dirname "$rel")"
@@ -53,9 +62,13 @@ backup_file() {
 if [ "$DESINSTALAR" = 1 ]; then
   removed=0
   for rel in "${MANAGED[@]}"; do
-    if [ -f "$DEST/$rel" ]; then backup_file "$rel"; removed=$((removed+1)); fi
+    if present "$rel"; then backup_file "$rel"; removed=$((removed+1)); fi
   done
-  echo "Braia removida de $DEST ($removed arquivos movidos para $BACKUP)."
+  if [ "$removed" -gt 0 ]; then
+    echo "Braia removida de $DEST ($removed arquivos movidos para $BACKUP)."
+  else
+    echo "Nenhum arquivo da Braia encontrado em $DEST."
+  fi
   echo "Seus outros arquivos na pasta não foram tocados."
   exit 0
 fi
@@ -89,18 +102,25 @@ fi
 
 [ -n "${SRC:-}" ] && [ -f "$SRC/.claude/agents/braia.md" ] || {
   echo "Erro: arquivos da Braia não encontrados na origem." >&2; exit 1; }
+# Confere a origem inteira antes de mexer no destino (evita instalação parcial).
+for rel in "${MANAGED[@]}"; do
+  [ -f "$SRC/$rel" ] || { echo "Erro: origem incompleta, falta $rel." >&2; exit 1; }
+done
+for d in "$DEST" "$DEST/.claude" "$DEST/.claude/agents"; do
+  if [ -L "$d" ]; then echo "Erro: $d é um link simbólico; use uma pasta real." >&2; exit 1; fi
+done
 
 mkdir -p "$DEST/.claude/agents"
 installed=0; unchanged=0; backed=0
 for rel in "${MANAGED[@]}"; do
   if [ "$SEM_ANGELICA" = 1 ] && [ "$rel" = ".claude/agents/angelica.md" ]; then
-    if [ -f "$DEST/$rel" ]; then backup_file "$rel"; backed=$((backed+1)); fi
+    if present "$rel"; then backup_file "$rel"; backed=$((backed+1)); fi
     continue
   fi
-  if [ -f "$DEST/$rel" ] && cmp -s "$SRC/$rel" "$DEST/$rel"; then
+  if [ -f "$DEST/$rel" ] && [ ! -L "$DEST/$rel" ] && cmp -s "$SRC/$rel" "$DEST/$rel"; then
     unchanged=$((unchanged+1)); continue
   fi
-  if [ -f "$DEST/$rel" ]; then backup_file "$rel"; backed=$((backed+1)); fi
+  if present "$rel"; then backup_file "$rel"; backed=$((backed+1)); fi
   cp "$SRC/$rel" "$DEST/$rel"
   installed=$((installed+1))
 done

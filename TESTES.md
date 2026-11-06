@@ -1,38 +1,41 @@
 # Testes pós-instalação
 
-> **Status: PROPOSTO** — aguardando validação interna antes da imersão.
+> **Status: PROPOSTA** — aprovação didática final do Edilson pendente (gate G11).
+> Nenhum dos cenários abaixo foi executado com conta autenticada.
 
 Abra o Claude Code na pasta da Braia (`cd ~/Braia` e depois `claude`).
 
-## Teste 1 — A equipe está instalada
+## Cenário 1 — A equipe está instalada (PROPOSTA)
 
-Digite:
+**Passo:** digite
 
 > Braia, quem é a sua equipe?
 
-**Esperado:** a Braia se apresenta e lista Isaura, Paulo, Juliana e Angélica
-(ou só os três primeiros, se instalou com `--sem-angelica`).
-
+**Resultado esperado:** a Braia se apresenta e lista Isaura, Paulo, Juliana e
+Angélica (ou só as três primeiras pessoas, se instalou com `--sem-angelica`).
 Conferência extra: o comando `/agents` mostra `braia`, `isaura`, `paulo`,
 `juliana` (e `angelica`) como agentes do projeto.
 
-## Teste 2 — A Braia delega uma tarefa
+Execução autenticada: NÃO REALIZADA
 
-Digite:
+## Cenário 2 — A Braia delega uma tarefa (PROPOSTA)
+
+**Passo:** digite
 
 > Braia, peça ao Paulo para criar um arquivo `teste-paulo.md` nesta pasta com
 > uma checklist de 3 itens para organizar meus arquivos do computador.
 
-**Esperado:** a Braia aciona o subagente `paulo` (o Claude Code mostra a
-chamada do agente), o arquivo `teste-paulo.md` aparece na pasta e a Braia
+**Resultado esperado:** a Braia aciona o subagente `paulo` (o Claude Code mostra
+a chamada do agente), o arquivo `teste-paulo.md` aparece na pasta e a Braia
 resume o que foi feito. O Claude Code pode pedir permissão para criar o
 arquivo: aceite.
 
-## Opcional — Google (Isaura)
+Execução autenticada: NÃO REALIZADA
 
-Com os conectores Google ligados na conta Claude:
+---
 
-> Braia, peça à Isaura para listar meus compromissos de amanhã.
-
-**Esperado:** a Isaura consulta a agenda pelo conector. Se o conector não
-estiver ligado, ela explica como conectar, sem inventar compromissos.
+**Nota (fora dos dois cenários) — conferência opcional do Google (Isaura):**
+com os conectores Google ligados na conta Claude, peça "Braia, peça à Isaura
+para listar meus compromissos de amanhã". A Isaura deve consultar a agenda pelo
+conector ou, se ele não estiver ligado, explicar como conectar, sem inventar
+compromissos. Não faz parte da validação dos dois cenários.

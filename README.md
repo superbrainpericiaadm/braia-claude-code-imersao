@@ -23,8 +23,8 @@ computador. Ela coordena quatro especialistas:
 
 ## Requisitos
 
-1. **Conta Claude paga com Claude Code** (Pro, Max, Team ou Enterprise). O
-   plano gratuito não inclui o Claude Code.
+1. **Acesso ao Claude Code compatível — a confirmar na documentação oficial**
+   (assinatura ou API são modalidades possíveis; não decidido em reunião).
 2. **Claude Code instalado** pelo instalador oficial
    ([documentação](https://code.claude.com/docs/en/setup)):
    - macOS/Linux: `curl -fsSL https://claude.ai/install.sh | bash`
@@ -38,13 +38,18 @@ computador. Ela coordena quatro especialistas:
 
 ## Instalar
 
-macOS / Linux:
+> **RASCUNHO BLOQUEADO — não divulgar aos alunos.** O repositório
+> `superbrainpericiaadm/braia-claude-code-imersao` é **privado**: os comandos
+> abaixo retornam **404** fora da conta dona. Não há liberação aos alunos
+> (gate G8). Os comandos ficam aqui só como rascunho do formato final.
+
+macOS / Linux (RASCUNHO BLOQUEADO):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/superbrainpericiaadm/braia-claude-code-imersao/main/install.sh | bash
 ```
 
-Windows (PowerShell):
+Windows (PowerShell) (RASCUNHO BLOQUEADO):
 
 ```powershell
 irm https://raw.githubusercontent.com/superbrainpericiaadm/braia-claude-code-imersao/main/install.ps1 | iex
@@ -52,7 +57,7 @@ irm https://raw.githubusercontent.com/superbrainpericiaadm/braia-claude-code-ime
 
 O instalador cria a pasta `Braia` na sua pasta pessoal e copia os agentes.
 Pode rodar de novo sem problema: arquivos iguais não são tocados e, se algum
-mudou, a versão anterior vai para `Braia/.braia-backup/<data>`.
+mudou, a versão anterior vai para `Braia/.braia-backup/<data>-<pid>`.
 
 Opções (a partir de um clone ou download do repositório):
 
@@ -64,6 +69,14 @@ bash install.sh --sem-angelica   # sem a Angélica
 ```powershell
 .\install.ps1 -Destino C:\OutraPasta
 .\install.ps1 -SemAngelica
+```
+
+No Windows, rodar o arquivo `.\install.ps1` baixado pode ser bloqueado pela
+política de execução (ExecutionPolicy). Nesse caso, libere só para esta
+execução, sem mudar a configuração do computador:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
 ## Usar
@@ -90,9 +103,61 @@ bash install.sh --desinstalar      # macOS/Linux
 .\install.ps1 -Desinstalar         # Windows
 ```
 
-Isso move apenas os arquivos da Braia para `Braia/.braia-backup/<data>`.
+Isso move apenas os arquivos da Braia para `Braia/.braia-backup/<data>-<pid>`.
 Seus documentos na pasta ficam intactos. Para remover tudo, apague a pasta
 `Braia` manualmente.
+
+## Recuperação / restaurar backup
+
+O instalador nunca apaga: todo arquivo da Braia que ele substitui ou remove vai
+para uma pasta de backup dentro da própria pasta da Braia.
+
+1. **Onde fica:** `Braia/.braia-backup/<data>-<pid>/`, por exemplo
+   `~/Braia/.braia-backup/20261106-191500-12345/.claude/agents/paulo.md`.
+   `<data>` é ano-mês-dia-hora-minuto-segundo e `<pid>` é o número do processo
+   do instalador; cada execução cria a sua pasta. A mais recente é a última da
+   lista:
+
+   ```bash
+   ls ~/Braia/.braia-backup/
+   ```
+
+   ```powershell
+   Get-ChildItem $HOME\Braia\.braia-backup | Sort-Object Name
+   ```
+
+2. **Restaurar um arquivo** (ex.: a sua versão antiga do `paulo.md`):
+
+   ```bash
+   cd ~/Braia
+   cp .braia-backup/<data>-<pid>/.claude/agents/paulo.md .claude/agents/paulo.md
+   ```
+
+   ```powershell
+   cd $HOME\Braia
+   Copy-Item .braia-backup\<data>-<pid>\.claude\agents\paulo.md .claude\agents\paulo.md
+   ```
+
+3. **Restaurar tudo de um backup** (copia por cima todos os arquivos daquele
+   backup, mantendo a estrutura de pastas):
+
+   ```bash
+   cd ~/Braia
+   cp -R .braia-backup/<data>-<pid>/.claude/. .claude/
+   ```
+
+   ```powershell
+   cd $HOME\Braia
+   Copy-Item -Recurse -Force .braia-backup\<data>-<pid>\.claude\* .claude\
+   ```
+
+4. **Reinstalar a versão original da Braia:** rode o instalador de novo
+   (`bash install.sh` ou `.\install.ps1`, a partir da pasta do pacote). Os
+   arquivos alterados voltam ao original e a versão alterada vai para um
+   backup novo.
+
+Os backups não são apagados automaticamente. Depois de conferir, você pode
+apagar a pasta `.braia-backup` manualmente.
 
 ## Estrutura
 

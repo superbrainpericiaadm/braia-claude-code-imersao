@@ -32,7 +32,7 @@ $Backup = Join-Path $Destino ".braia-backup/$Stamp"
 function Backup-File([string]$rel) {
   $target = Join-Path $Backup $rel
   New-Item -ItemType Directory -Force -Path (Split-Path $target) | Out-Null
-  Move-Item -Force (Join-Path $Destino $rel) $target
+  Move-Item -Force -LiteralPath (Join-Path $Destino $rel) -Destination $target
 }
 
 if ($Desinstalar) {
@@ -49,24 +49,31 @@ $Tmp = $null
 try {
   if ($env:BRAIA_SOURCE) {
     $Src = Join-Path $env:BRAIA_SOURCE 'braia'
-  } elseif ($PSScriptRoot -and (Test-Path (Join-Path $PSScriptRoot 'braia/.claude/agents'))) {
+  } elseif ($PSScriptRoot -and (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'braia/.claude/agents'))) {
     $Src = Join-Path $PSScriptRoot 'braia'
   } else {
     $Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("braia-" + [guid]::NewGuid())
     New-Item -ItemType Directory -Path $Tmp | Out-Null
     $Url = "https://codeload.github.com/$Repo/zip/$Ref"
     Write-Host "Baixando $Repo ($Ref)..."
+    # Windows PowerShell 5.1 em .NET antigo pode não negociar TLS 1.2 (exigido pelo GitHub).
+    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+    $ProgressPreference = 'SilentlyContinue'
     try {
       Invoke-WebRequest -UseBasicParsing -Uri $Url -OutFile (Join-Path $Tmp 'braia.zip')
     } catch {
-      throw "Não foi possível baixar $Url (repositório privado ou sem internet?)."
+      throw "Não foi possível baixar $Url (repositório privado ou sem internet?): $($_.Exception.Message)"
     }
     Expand-Archive -Path (Join-Path $Tmp 'braia.zip') -DestinationPath $Tmp
     $Src = Get-ChildItem -Path $Tmp -Directory | ForEach-Object { Join-Path $_.FullName 'braia' } |
       Where-Object { Test-Path $_ } | Select-Object -First 1
   }
-  if (-not $Src -or -not (Test-Path (Join-Path $Src '.claude/agents/braia.md'))) {
+  if (-not $Src -or -not (Test-Path -LiteralPath (Join-Path $Src '.claude/agents/braia.md'))) {
     throw 'Arquivos da Braia não encontrados na origem.'
+  }
+  # Confere a origem inteira antes de mexer no destino (evita instalação parcial).
+  foreach ($rel in $Managed) {
+    if (-not (Test-Path -LiteralPath (Join-Path $Src $rel) -PathType Leaf)) { throw "Origem incompleta, falta $rel." }
   }
 
   New-Item -ItemType Directory -Force -Path (Join-Path $Destino '.claude/agents') | Out-Null
@@ -79,7 +86,7 @@ try {
       continue
     }
     if (Test-Path -LiteralPath $dst -PathType Leaf) {
-      if ((Get-FileHash $srcFile).Hash -eq (Get-FileHash $dst).Hash) { $unchanged++; continue }
+      if ((Get-FileHash -LiteralPath $srcFile).Hash -eq (Get-FileHash -LiteralPath $dst).Hash) { $unchanged++; continue }
       Backup-File $rel; $backed++
     }
     Copy-Item -LiteralPath $srcFile -Destination $dst
@@ -94,5 +101,5 @@ try {
   Write-Host "  cd `"$Destino`"; claude"
   Write-Host 'Depois escreva: Braia, quem é a sua equipe?'
 } finally {
-  if ($Tmp -and (Test-Path $Tmp)) { Remove-Item -Recurse -Force $Tmp }
+  if ($Tmp -and (Test-Path -LiteralPath $Tmp)) { Remove-Item -LiteralPath $Tmp -Recurse -Force }
 }
