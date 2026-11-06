@@ -39,21 +39,63 @@ computador. Ela coordena quatro especialistas:
 ## Instalar
 
 > **RASCUNHO BLOQUEADO — não divulgar aos alunos.** O repositório
-> `superbrainpericiaadm/braia-claude-code-imersao` é **privado**: os comandos
-> abaixo retornam **404** fora da conta dona. Não há liberação aos alunos
-> (gate G8). Os comandos ficam aqui só como rascunho do formato final.
+> `superbrainpericiaadm/braia-claude-code-imersao` é **privado** e ainda não há
+> versão publicada: `<TAG-A-DEFINIR>` e `<SHA256-A-DEFINIR>` abaixo são
+> marcadores, não valores reais (gate G8). Nenhum endereço aqui funciona hoje.
 
-macOS / Linux (RASCUNHO BLOQUEADO):
+A instalação usa sempre uma **versão fixada** (tag), nunca o ramo `main`, e o
+instalador **confere o SHA256 do pacote antes de extrair**: se o hash não bater,
+ele para e não instala nada. Ele não usa sudo/administrador, não altera o PATH e
+não envia dados.
+
+SHA256 publicado desta versão (conferir também no slide da aula):
+
+```
+<SHA256-A-DEFINIR>  braia-<TAG-A-DEFINIR>.tar.gz
+<SHA256-A-DEFINIR>  braia-<TAG-A-DEFINIR>.zip
+```
+
+### Caminho recomendado: baixar, ler, rodar
+
+macOS / Linux:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/superbrainpericiaadm/braia-claude-code-imersao/main/install.sh | bash
+curl -fsSLo install.sh https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/<TAG-A-DEFINIR>/install.sh
+less install.sh        # leia antes de rodar (q para sair)
+bash install.sh
 ```
 
-Windows (PowerShell) (RASCUNHO BLOQUEADO):
+Windows (PowerShell):
 
 ```powershell
-irm https://raw.githubusercontent.com/superbrainpericiaadm/braia-claude-code-imersao/main/install.ps1 | iex
+irm https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/<TAG-A-DEFINIR>/install.ps1 -OutFile install.ps1
+notepad install.ps1    # leia antes de rodar
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 ```
+
+O instalador baixado já traz a versão e o SHA256 fixados. Ele baixa o pacote
+daquela versão, confere o hash e só então copia os arquivos. Para conferir o
+pacote você mesmo, baixe `braia-<TAG-A-DEFINIR>.tar.gz` (ou `.zip`) e compare:
+`sha256sum` (Linux), `shasum -a 256` (macOS) ou `Get-FileHash` (Windows).
+
+### Atalho opcional (sem leitura prévia)
+
+Mesmo instalador e mesma conferência de hash, mas executado direto da internet,
+sem você ler antes. Use só se confiar na origem:
+
+```bash
+curl -fsSL https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/<TAG-A-DEFINIR>/install.sh | bash
+```
+
+```powershell
+irm https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/<TAG-A-DEFINIR>/install.ps1 | iex
+```
+
+### Sem internet ou com o pacote já baixado
+
+Extraia `braia-<TAG-A-DEFINIR>.tar.gz`/`.zip` e rode o instalador de dentro da
+pasta extraída (`bash install.sh` ou `.\install.ps1`): ele usa os arquivos ao lado
+e não baixa nada.
 
 O instalador cria a pasta `Braia` na sua pasta pessoal e copia os agentes.
 Pode rodar de novo sem problema: arquivos iguais não são tocados e, se algum
@@ -162,7 +204,8 @@ apagar a pasta `.braia-backup` manualmente.
 ## Estrutura
 
 ```
-install.sh / install.ps1     instaladores (só copiam arquivos)
+install.sh / install.ps1     instaladores (só copiam arquivos; conferem SHA256 do pacote)
+tools/gerar-release.sh       uso interno: gera pacote, SHA256SUMS e instaladores fixados
 braia/.claude/settings.json  faz a sessão começar como Braia ("agent": "braia")
 braia/.claude/agents/        braia, isaura, paulo, juliana, angelica
 ```

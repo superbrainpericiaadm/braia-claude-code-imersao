@@ -1,23 +1,30 @@
 #!/usr/bin/env bash
 # Instala a Braia (equipe de agentes do Claude Code) numa pasta local.
-# Só copia arquivos de texto. Não usa sudo, não instala programas, não pede senha.
+# Só copia arquivos de texto. Não usa sudo, não altera o PATH, não envia dados.
 #
-# Uso:
+# Uso (caminho recomendado: baixar, ler e só então rodar):
 #   bash install.sh                 # instala em ~/Braia
 #   bash install.sh /outra/pasta    # instala na pasta indicada
 #   bash install.sh --sem-angelica  # instala sem a agente opcional Angélica
 #   bash install.sh --desinstalar   # remove os arquivos da Braia (vão para backup)
 #
-# Variáveis opcionais:
-#   BRAIA_DIR     pasta de destino (padrão: $HOME/Braia)
-#   BRAIA_SOURCE  pasta local com a subpasta braia/ (padrão: ao lado deste script,
-#                 ou download do GitHub quando executado via curl | bash)
-#   BRAIA_REPO    repositório GitHub dono/nome (padrão abaixo)
-#   BRAIA_REF     branch ou tag (padrão: main)
+# Origem dos arquivos, nesta ordem:
+#   1. BRAIA_SOURCE  pasta local com a subpasta braia/
+#   2. a pasta braia/ ao lado deste script (pacote baixado e extraído)
+#   3. pacote da versão FIXADA (tag ou SHA, nunca main), conferido por SHA256
+#      antes de extrair; aborta se o hash divergir.
+# Variáveis do modo 3:
+#   BRAIA_REF      tag (ex.: v1.0.0) ou SHA completo de 40 caracteres
+#   BRAIA_SHA256   SHA256 esperado do pacote .tar.gz (64 hex)
+#   BRAIA_ARCHIVE  pacote .tar.gz já baixado (dispensa download)
+#   BRAIA_URL      endereço do pacote (padrão: asset da Release da tag)
+#   BRAIA_DIR      pasta de destino (padrão: $HOME/Braia)
 set -euo pipefail
 
+# Preenchidos por tools/gerar-release.sh na cópia publicada; vazios aqui de propósito.
+REF_FIXO="<TAG-A-DEFINIR>"
+SHA256_FIXO="<SHA256-A-DEFINIR>"
 BRAIA_REPO="${BRAIA_REPO:-superbrainpericiaadm/braia-claude-code-imersao}"
-BRAIA_REF="${BRAIA_REF:-main}"
 if [ -z "${BRAIA_DIR:-}" ] && [ -z "${HOME:-}" ]; then
   echo "Erro: HOME não definido; informe a pasta: bash install.sh /caminho" >&2; exit 1
 fi
@@ -29,7 +36,7 @@ for arg in "$@"; do
   case "$arg" in
     --sem-angelica) SEM_ANGELICA=1 ;;
     --desinstalar) DESINSTALAR=1 ;;
-    -h|--help) sed -n '2,16p' "$0" 2>/dev/null || true; exit 0 ;;
+    -h|--help) sed -n '2,21p' "$0" 2>/dev/null || true; exit 0 ;;
     -*) echo "Opção desconhecida: $arg" >&2; exit 2 ;;
     *) DEST="$arg" ;;
   esac
@@ -87,16 +94,45 @@ if [ -n "${BRAIA_SOURCE:-}" ]; then
 elif [ -n "$SCRIPT_DIR" ] && [ -d "$SCRIPT_DIR/braia/.claude/agents" ]; then
   SRC="$SCRIPT_DIR/braia"
 else
-  command -v curl >/dev/null 2>&1 || { echo "Erro: curl não encontrado." >&2; exit 1; }
-  command -v tar  >/dev/null 2>&1 || { echo "Erro: tar não encontrado." >&2; exit 1; }
-  TMP="$(mktemp -d)"
-  URL="https://codeload.github.com/$BRAIA_REPO/tar.gz/$BRAIA_REF"
-  echo "Baixando $BRAIA_REPO ($BRAIA_REF)..."
-  if ! curl -fsSL "$URL" -o "$TMP/braia.tar.gz"; then
-    echo "Erro: não foi possível baixar $URL (repositório privado ou sem internet?)." >&2
-    exit 1
+  REF="${BRAIA_REF:-$REF_FIXO}"
+  SUM="${BRAIA_SHA256:-$SHA256_FIXO}"
+  case "$REF" in
+    "<TAG-A-DEFINIR>"|"") echo "Erro: versão não fixada (BRAIA_REF). Use uma tag ou SHA; nunca main." >&2; exit 3 ;;
+    main|master|HEAD|develop) echo "Erro: '$REF' é um branch móvel; use uma tag ou SHA completo." >&2; exit 3 ;;
+  esac
+  if ! printf '%s' "$REF" | grep -Eq '^(v[0-9][0-9A-Za-z._-]*|[0-9a-f]{40})$'; then
+    echo "Erro: BRAIA_REF inválido ('$REF'): use tag vX.Y.Z ou SHA de 40 caracteres." >&2; exit 3
   fi
-  tar -xzf "$TMP/braia.tar.gz" -C "$TMP"
+  SUM="$(printf '%s' "$SUM" | tr 'A-F' 'a-f')"
+  if ! printf '%s' "$SUM" | grep -Eq '^[0-9a-f]{64}$'; then
+    echo "Erro: SHA256 esperado ausente ou inválido (BRAIA_SHA256)." >&2; exit 3
+  fi
+  if command -v sha256sum >/dev/null 2>&1; then HASHER="sha256sum"
+  elif command -v shasum >/dev/null 2>&1; then HASHER="shasum -a 256"
+  else echo "Erro: sha256sum/shasum não encontrado; não é possível conferir o pacote." >&2; exit 1; fi
+  command -v tar >/dev/null 2>&1 || { echo "Erro: tar não encontrado." >&2; exit 1; }
+  TMP="$(mktemp -d)"
+  PKG="$TMP/braia.tar.gz"
+  if [ -n "${BRAIA_ARCHIVE:-}" ]; then
+    cp "$BRAIA_ARCHIVE" "$PKG"
+  else
+    command -v curl >/dev/null 2>&1 || { echo "Erro: curl não encontrado." >&2; exit 1; }
+    URL="${BRAIA_URL:-https://github.com/$BRAIA_REPO/releases/download/$REF/braia-$REF.tar.gz}"
+    echo "Baixando $URL ..."
+    if ! curl -fsSL "$URL" -o "$PKG"; then
+      echo "Erro: não foi possível baixar $URL (repositório privado ou sem internet?)." >&2
+      exit 1
+    fi
+  fi
+  GOT="$($HASHER "$PKG" | cut -d' ' -f1)"
+  if [ "$GOT" != "$SUM" ]; then
+    echo "Erro: SHA256 do pacote não confere. Nada foi instalado." >&2
+    echo "  esperado: $SUM" >&2
+    echo "  obtido:   $GOT" >&2
+    exit 4
+  fi
+  echo "SHA256 conferido: $GOT"
+  tar -xzf "$PKG" -C "$TMP"
   SRC="$(find "$TMP" -mindepth 2 -maxdepth 2 -type d -name braia | head -n 1)"
 fi
 

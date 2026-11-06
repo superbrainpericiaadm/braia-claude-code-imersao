@@ -1,13 +1,17 @@
-# Instala a Braia (equipe de agentes do Claude Code) numa pasta local.
-# Só copia arquivos de texto. Não pede administrador, não instala programas, não pede senha.
+﻿# Instala a Braia (equipe de agentes do Claude Code) numa pasta local.
+# Só copia arquivos de texto. Não pede administrador, não altera o PATH, não envia dados.
 #
-# Uso (PowerShell):
-#   .\install.ps1                      # instala em $HOME\Braia
+# Uso (caminho recomendado: baixar, ler e só então rodar):
+#   powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 #   .\install.ps1 -Destino C:\Pasta    # instala na pasta indicada
 #   .\install.ps1 -SemAngelica         # sem a agente opcional Angélica
 #   .\install.ps1 -Desinstalar         # remove os arquivos da Braia (vão para backup)
 #
-# Variáveis opcionais: BRAIA_DIR, BRAIA_SOURCE, BRAIA_REPO, BRAIA_REF (ver install.sh).
+# Origem dos arquivos, nesta ordem: BRAIA_SOURCE; pasta braia\ ao lado do script;
+# pacote .zip da versão FIXADA (tag ou SHA, nunca main), conferido por SHA256 antes
+# de extrair (aborta se divergir). Variáveis do pacote: BRAIA_REF, BRAIA_SHA256,
+# BRAIA_ARCHIVE (zip já baixado), BRAIA_URL. Destino: BRAIA_DIR. Ver install.sh.
+# Arquivo salvo em UTF-8 com BOM para o Windows PowerShell 5.1 ler os acentos.
 param(
   [string]$Destino = $(if ($env:BRAIA_DIR) { $env:BRAIA_DIR } else { Join-Path $HOME 'Braia' }),
   [switch]$SemAngelica,
@@ -15,8 +19,10 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 
+# Preenchidos por tools/gerar-release.sh na cópia publicada; vazios aqui de propósito.
+$RefFixo    = '<TAG-A-DEFINIR>'
+$Sha256Fixo = '<SHA256-A-DEFINIR>'
 $Repo = if ($env:BRAIA_REPO) { $env:BRAIA_REPO } else { 'superbrainpericiaadm/braia-claude-code-imersao' }
-$Ref  = if ($env:BRAIA_REF)  { $env:BRAIA_REF }  else { 'main' }
 
 $Managed = @(
   '.claude/settings.json',
@@ -29,18 +35,37 @@ $Managed = @(
 $Stamp  = (Get-Date -Format 'yyyyMMdd-HHmmss') + "-$PID"
 $Backup = Join-Path $Destino ".braia-backup/$Stamp"
 
+# Item existente (arquivo, pasta ou link, inclusive link quebrado) ou $null.
+function Get-Present([string]$path) {
+  Get-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+}
+function Test-Link($item) {
+  $item -and (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0)
+}
 function Backup-File([string]$rel) {
   $target = Join-Path $Backup $rel
   New-Item -ItemType Directory -Force -Path (Split-Path $target) | Out-Null
   Move-Item -Force -LiteralPath (Join-Path $Destino $rel) -Destination $target
 }
+function Exit-Erro([string]$msg, [int]$code) {
+  Write-Host "Erro: $msg" -ForegroundColor Red
+  # Rodando como arquivo (-File): sai com código próprio. Via irm | iex: throw,
+  # para não fechar a janela do PowerShell do aluno.
+  if ($PSCommandPath) { exit $code }
+  throw $msg
+}
+
+foreach ($d in @($Destino, (Join-Path $Destino '.claude'), (Join-Path $Destino '.claude/agents'))) {
+  if (Test-Link (Get-Present $d)) { Exit-Erro "$d é um link simbólico ou junção; use uma pasta real." 1 }
+}
 
 if ($Desinstalar) {
   $n = 0
   foreach ($rel in $Managed) {
-    if (Test-Path -LiteralPath (Join-Path $Destino $rel) -PathType Leaf) { Backup-File $rel; $n++ }
+    if (Get-Present (Join-Path $Destino $rel)) { Backup-File $rel; $n++ }
   }
-  Write-Host "Braia removida de $Destino ($n arquivos movidos para $Backup)."
+  if ($n -gt 0) { Write-Host "Braia removida de $Destino ($n arquivos movidos para $Backup)." }
+  else { Write-Host "Nenhum arquivo da Braia encontrado em $Destino." }
   Write-Host 'Seus outros arquivos na pasta não foram tocados.'
   return
 }
@@ -52,28 +77,46 @@ try {
   } elseif ($PSScriptRoot -and (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'braia/.claude/agents'))) {
     $Src = Join-Path $PSScriptRoot 'braia'
   } else {
+    $Ref = if ($env:BRAIA_REF) { $env:BRAIA_REF } else { $RefFixo }
+    $Sum = if ($env:BRAIA_SHA256) { $env:BRAIA_SHA256 } else { $Sha256Fixo }
+    if (-not $Ref -or $Ref -eq '<TAG-A-DEFINIR>') { Exit-Erro 'versão não fixada (BRAIA_REF). Use uma tag ou SHA; nunca main.' 3 }
+    if (@('main', 'master', 'HEAD', 'develop') -contains $Ref) { Exit-Erro "'$Ref' é um branch móvel; use uma tag ou SHA completo." 3 }
+    if ($Ref -cnotmatch '^(v[0-9][0-9A-Za-z._-]*|[0-9a-f]{40})$') { Exit-Erro "BRAIA_REF inválido ('$Ref'): use tag vX.Y.Z ou SHA de 40 caracteres." 3 }
+    $Sum = $Sum.ToLowerInvariant()
+    if ($Sum -notmatch '^[0-9a-f]{64}$') { Exit-Erro 'SHA256 esperado ausente ou inválido (BRAIA_SHA256).' 3 }
+
     $Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("braia-" + [guid]::NewGuid())
     New-Item -ItemType Directory -Path $Tmp | Out-Null
-    $Url = "https://codeload.github.com/$Repo/zip/$Ref"
-    Write-Host "Baixando $Repo ($Ref)..."
-    # Windows PowerShell 5.1 em .NET antigo pode não negociar TLS 1.2 (exigido pelo GitHub).
-    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-    $ProgressPreference = 'SilentlyContinue'
-    try {
-      Invoke-WebRequest -UseBasicParsing -Uri $Url -OutFile (Join-Path $Tmp 'braia.zip')
-    } catch {
-      throw "Não foi possível baixar $Url (repositório privado ou sem internet?): $($_.Exception.Message)"
+    $Pkg = Join-Path $Tmp 'braia.zip'
+    if ($env:BRAIA_ARCHIVE) {
+      Copy-Item -LiteralPath $env:BRAIA_ARCHIVE -Destination $Pkg
+    } else {
+      $Url = if ($env:BRAIA_URL) { $env:BRAIA_URL } else { "https://github.com/$Repo/releases/download/$Ref/braia-$Ref.zip" }
+      Write-Host "Baixando $Url ..."
+      # Windows PowerShell 5.1 em .NET antigo pode não negociar TLS 1.2 (exigido pelo GitHub).
+      [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+      $ProgressPreference = 'SilentlyContinue'
+      try {
+        Invoke-WebRequest -UseBasicParsing -Uri $Url -OutFile $Pkg
+      } catch {
+        Exit-Erro "não foi possível baixar $Url (repositório privado ou sem internet?): $($_.Exception.Message)" 1
+      }
     }
-    Expand-Archive -Path (Join-Path $Tmp 'braia.zip') -DestinationPath $Tmp
-    $Src = Get-ChildItem -Path $Tmp -Directory | ForEach-Object { Join-Path $_.FullName 'braia' } |
-      Where-Object { Test-Path $_ } | Select-Object -First 1
+    $Got = (Get-FileHash -Algorithm SHA256 -LiteralPath $Pkg).Hash.ToLowerInvariant()
+    if ($Got -ne $Sum) {
+      Exit-Erro "SHA256 do pacote não confere. Nada foi instalado. esperado: $Sum obtido: $Got" 4
+    }
+    Write-Host "SHA256 conferido: $Got"
+    Expand-Archive -LiteralPath $Pkg -DestinationPath $Tmp
+    $Src = Get-ChildItem -LiteralPath $Tmp -Directory | ForEach-Object { Join-Path $_.FullName 'braia' } |
+      Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
   }
   if (-not $Src -or -not (Test-Path -LiteralPath (Join-Path $Src '.claude/agents/braia.md'))) {
-    throw 'Arquivos da Braia não encontrados na origem.'
+    Exit-Erro 'arquivos da Braia não encontrados na origem.' 1
   }
   # Confere a origem inteira antes de mexer no destino (evita instalação parcial).
   foreach ($rel in $Managed) {
-    if (-not (Test-Path -LiteralPath (Join-Path $Src $rel) -PathType Leaf)) { throw "Origem incompleta, falta $rel." }
+    if (-not (Test-Path -LiteralPath (Join-Path $Src $rel) -PathType Leaf)) { Exit-Erro "origem incompleta, falta $rel." 1 }
   }
 
   New-Item -ItemType Directory -Force -Path (Join-Path $Destino '.claude/agents') | Out-Null
@@ -81,14 +124,17 @@ try {
   foreach ($rel in $Managed) {
     $dst = Join-Path $Destino $rel
     $srcFile = Join-Path $Src $rel
+    $item = Get-Present $dst
     if ($SemAngelica -and $rel -eq '.claude/agents/angelica.md') {
-      if (Test-Path -LiteralPath $dst -PathType Leaf) { Backup-File $rel; $backed++ }
+      if ($item) { Backup-File $rel; $backed++ }
       continue
     }
-    if (Test-Path -LiteralPath $dst -PathType Leaf) {
+    if ($item -and -not (Test-Link $item) -and -not $item.PSIsContainer) {
       if ((Get-FileHash -LiteralPath $srcFile).Hash -eq (Get-FileHash -LiteralPath $dst).Hash) { $unchanged++; continue }
-      Backup-File $rel; $backed++
     }
+    # Link (inclusive quebrado), pasta ou arquivo diferente: vai para o backup antes da cópia,
+    # para que a cópia nunca escreva através de um link fora da pasta da Braia.
+    if ($item) { Backup-File $rel; $backed++ }
     Copy-Item -LiteralPath $srcFile -Destination $dst
     $installed++
   }

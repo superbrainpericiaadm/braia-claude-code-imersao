@@ -1,6 +1,6 @@
 # Testes pós-instalação
 
-> **Status: PROPOSTA** — aprovação didática final do Edilson pendente (gate G11).
+> **Status: PROPOSTA** — aprovação didática final pendente.
 > Nenhum dos cenários abaixo foi executado com conta autenticada.
 
 Abra o Claude Code na pasta da Braia (`cd ~/Braia` e depois `claude`).
