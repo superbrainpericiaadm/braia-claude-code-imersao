@@ -38,10 +38,9 @@ computador. Ela coordena quatro especialistas:
 
 ## Instalar
 
-> **RASCUNHO BLOQUEADO — não divulgar aos alunos.** O repositório
-> `superbrainpericiaadm/braia-claude-code-imersao` é **privado** e ainda não há
-> versão publicada: `<TAG-A-DEFINIR>` e `<SHA256-A-DEFINIR>` abaixo são
-> marcadores, não valores reais (gate G8). Nenhum endereço aqui funciona hoje.
+> **Versão `v1.0.0-imersao-19-11`** (commit `e67dc54`). O download pelos endereços abaixo só
+> funciona se o repositório/release estiver público; com o repositório privado,
+> use o pacote .zip/.tar.gz distribuído pela equipe (seção "Sem internet").
 
 A instalação usa sempre uma **versão fixada** (tag), nunca o ramo `main`, e o
 instalador **confere o SHA256 do pacote antes de extrair**: se o hash não bater,
@@ -51,8 +50,8 @@ não envia dados.
 SHA256 publicado desta versão (conferir também no slide da aula):
 
 ```
-<SHA256-A-DEFINIR>  braia-<TAG-A-DEFINIR>.tar.gz
-<SHA256-A-DEFINIR>  braia-<TAG-A-DEFINIR>.zip
+74f583567e814795b8d8585c4effde7c80c7db161a751c1a0b368bd6a49a71cf  braia-v1.0.0-imersao-19-11.tar.gz
+a517b8171aa5d0e7ea1e14cc4341a64638830ee9c2fb700ef824c004dffd2b3e  braia-v1.0.0-imersao-19-11.zip
 ```
 
 ### Caminho recomendado: baixar, ler, rodar
@@ -60,7 +59,7 @@ SHA256 publicado desta versão (conferir também no slide da aula):
 macOS / Linux:
 
 ```bash
-curl -fsSLo install.sh https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/<TAG-A-DEFINIR>/install.sh
+curl -fsSLo install.sh https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/v1.0.0-imersao-19-11/install.sh
 less install.sh        # leia antes de rodar (q para sair)
 bash install.sh
 ```
@@ -68,14 +67,14 @@ bash install.sh
 Windows (PowerShell):
 
 ```powershell
-irm https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/<TAG-A-DEFINIR>/install.ps1 -OutFile install.ps1
+irm https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/v1.0.0-imersao-19-11/install.ps1 -OutFile install.ps1
 notepad install.ps1    # leia antes de rodar
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
 O instalador baixado já traz a versão e o SHA256 fixados. Ele baixa o pacote
 daquela versão, confere o hash e só então copia os arquivos. Para conferir o
-pacote você mesmo, baixe `braia-<TAG-A-DEFINIR>.tar.gz` (ou `.zip`) e compare:
+pacote você mesmo, baixe `braia-v1.0.0-imersao-19-11.tar.gz` (ou `.zip`) e compare:
 `sha256sum` (Linux), `shasum -a 256` (macOS) ou `Get-FileHash` (Windows).
 
 ### Atalho opcional (sem leitura prévia)
@@ -84,16 +83,16 @@ Mesmo instalador e mesma conferência de hash, mas executado direto da internet,
 sem você ler antes. Use só se confiar na origem:
 
 ```bash
-curl -fsSL https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/<TAG-A-DEFINIR>/install.sh | bash
+curl -fsSL https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/v1.0.0-imersao-19-11/install.sh | bash
 ```
 
 ```powershell
-irm https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/<TAG-A-DEFINIR>/install.ps1 | iex
+irm https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/v1.0.0-imersao-19-11/install.ps1 | iex
 ```
 
 ### Sem internet ou com o pacote já baixado
 
-Extraia `braia-<TAG-A-DEFINIR>.tar.gz`/`.zip` e rode o instalador de dentro da
+Extraia `braia-v1.0.0-imersao-19-11.tar.gz`/`.zip` e rode o instalador de dentro da
 pasta extraída (`bash install.sh` ou `.\install.ps1`): ele usa os arquivos ao lado
 e não baixa nada.
 
