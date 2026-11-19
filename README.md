@@ -23,16 +23,16 @@ Instala em `~/.claude` (nível de usuário), então funciona em **qualquer pasta
 macOS / Linux:
 
 ```
-curl -fsSL https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/@TAG@/install.sh | bash
+curl -fsSL https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/v1.1.0-agente-imersao-19-11/install.sh | bash
 ```
 
 Windows (PowerShell):
 
 ```
-irm https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/@TAG@/install.ps1 | iex
+irm https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/v1.1.0-agente-imersao-19-11/install.ps1 | iex
 ```
 
-O instalador usa a **versão fixada** (`@TAG@`), baixa o pacote e **confere o SHA256
+O instalador usa a **versão fixada** (`v1.1.0-agente-imersao-19-11`), baixa o pacote e **confere o SHA256
 antes de extrair** (se não bater, para e não instala nada). Não usa sudo/administrador,
 não mexe no PATH, não envia dados. Reexecutar é seguro: arquivos iguais ficam como
 estão; um arquivo seu com o mesmo nome vai para `~/.claude/.braia-backup/` antes de
@@ -75,11 +75,14 @@ bot. Não guarda senhas e não acessa nada além do que você conectar.
 ## Sem internet pelo comando / conferir o pacote
 
 Baixe `install.sh` (ou `install.ps1`) e o pacote da
-[release](https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/tag/@TAG@),
+[release](https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/tag/v1.1.0-agente-imersao-19-11),
 confira com `SHA256SUMS` e rode. SHA256 desta versão:
 
 ```
-@SUMS@
+3ce8b7ad18a88c1eb60caf72aac734681a0e89fe3d001d7de109ccb773fb959e  braia-v1.1.0-agente-imersao-19-11.tar.gz
+7cf6cb875b04028d9a977462b4858617db74bdc111deb5e8b33a7664cf685d3f  braia-v1.1.0-agente-imersao-19-11.zip
+7403851d676d1de962c1c651e42f4869a12e67eb323541dc4c8314f094631809  install.sh
+c1e5461048600fd1d573607184e7df9865763c75302619358953c5a26a1f0e9c  install.ps1
 ```
 
 ## Desinstalar
