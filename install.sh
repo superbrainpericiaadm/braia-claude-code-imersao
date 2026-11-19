@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Instala a Braia (equipe de agentes do Claude Code) numa pasta local.
+# Instala a Braia como AGENTE do Claude Code (nível de usuário, em ~/.claude):
+# comando /braia + subagentes isaura, paulo, juliana, angelica. Vale em qualquer pasta.
 # Só copia arquivos de texto. Não usa sudo, não altera o PATH, não envia dados.
 #
 # Uso (caminho recomendado: baixar, ler e só então rodar):
-#   bash install.sh                 # instala em ~/Braia
-#   bash install.sh /outra/pasta    # instala na pasta indicada
+#   bash install.sh                 # instala em ~/.claude (ou $CLAUDE_CONFIG_DIR)
+#   bash install.sh /outra/pasta    # instala na pasta de configuração indicada
 #   bash install.sh --sem-angelica  # instala sem a agente opcional Angélica
 #   bash install.sh --desinstalar   # remove os arquivos da Braia (vão para backup)
 #
@@ -18,7 +19,7 @@
 #   BRAIA_SHA256   SHA256 esperado do pacote .tar.gz (64 hex)
 #   BRAIA_ARCHIVE  pacote .tar.gz já baixado (dispensa download)
 #   BRAIA_URL      endereço do pacote (padrão: asset da Release da tag)
-#   BRAIA_DIR      pasta de destino (padrão: $HOME/Braia)
+#   BRAIA_DIR      pasta de destino (padrão: $CLAUDE_CONFIG_DIR ou $HOME/.claude)
 set -euo pipefail
 
 # Preenchidos por tools/gerar-release.sh na cópia publicada; vazios aqui de propósito.
@@ -28,7 +29,7 @@ BRAIA_REPO="${BRAIA_REPO:-superbrainpericiaadm/braia-claude-code-imersao}"
 if [ -z "${BRAIA_DIR:-}" ] && [ -z "${HOME:-}" ]; then
   echo "Erro: HOME não definido; informe a pasta: bash install.sh /caminho" >&2; exit 1
 fi
-DEST="${BRAIA_DIR:-${HOME:-}/Braia}"
+DEST="${BRAIA_DIR:-${CLAUDE_CONFIG_DIR:-${HOME:-}/.claude}}"
 SEM_ANGELICA=0
 DESINSTALAR=0
 
@@ -45,12 +46,12 @@ done
 [ -n "$DEST" ] || { echo "Erro: pasta de destino vazia." >&2; exit 2; }
 
 MANAGED=(
-  ".claude/settings.json"
-  ".claude/agents/braia.md"
-  ".claude/agents/isaura.md"
-  ".claude/agents/paulo.md"
-  ".claude/agents/juliana.md"
-  ".claude/agents/angelica.md"
+  "commands/braia.md"
+  "agents/braia.md"
+  "agents/isaura.md"
+  "agents/paulo.md"
+  "agents/juliana.md"
+  "agents/angelica.md"
 )
 
 STAMP="$(date +%Y%m%d-%H%M%S)-$$"
@@ -136,20 +137,21 @@ else
   SRC="$(find "$TMP" -mindepth 2 -maxdepth 2 -type d -name braia | head -n 1)"
 fi
 
-[ -n "${SRC:-}" ] && [ -f "$SRC/.claude/agents/braia.md" ] || {
+SRC="${SRC:+$SRC/.claude}"
+[ -n "${SRC:-}" ] && [ -f "$SRC/agents/braia.md" ] || {
   echo "Erro: arquivos da Braia não encontrados na origem." >&2; exit 1; }
 # Confere a origem inteira antes de mexer no destino (evita instalação parcial).
 for rel in "${MANAGED[@]}"; do
   [ -f "$SRC/$rel" ] || { echo "Erro: origem incompleta, falta $rel." >&2; exit 1; }
 done
-for d in "$DEST" "$DEST/.claude" "$DEST/.claude/agents"; do
+for d in "$DEST" "$DEST/agents" "$DEST/commands"; do
   if [ -L "$d" ]; then echo "Erro: $d é um link simbólico; use uma pasta real." >&2; exit 1; fi
 done
 
-mkdir -p "$DEST/.claude/agents"
+mkdir -p "$DEST/agents" "$DEST/commands"
 installed=0; unchanged=0; backed=0
 for rel in "${MANAGED[@]}"; do
-  if [ "$SEM_ANGELICA" = 1 ] && [ "$rel" = ".claude/agents/angelica.md" ]; then
+  if [ "$SEM_ANGELICA" = 1 ] && [ "$rel" = "agents/angelica.md" ]; then
     if present "$rel"; then backup_file "$rel"; backed=$((backed+1)); fi
     continue
   fi
@@ -161,10 +163,12 @@ for rel in "${MANAGED[@]}"; do
   installed=$((installed+1))
 done
 
-echo "Braia instalada em: $DEST"
+echo "Braia instalada em: $DEST (comando /braia + agentes isaura, paulo, juliana, angelica)"
 echo "  arquivos novos/atualizados: $installed | já iguais: $unchanged | backups: $backed"
 [ "$backed" -gt 0 ] && echo "  backup dos arquivos anteriores: $BACKUP"
 echo
-echo "Próximo passo:"
-echo "  cd \"$DEST\" && claude"
-echo "Depois escreva: Braia, quem é a sua equipe?"
+echo "Próximo passo (em qualquer pasta):"
+echo "  claude          # abra o Claude Code (feche e abra de novo se já estava aberto)"
+echo "  /braia Braia, quem é a sua equipe?"
+echo "Google (Gmail, Agenda, Drive): conecte em https://claude.ai/customize/connectors,"
+echo "  entre no Claude Code com a mesma conta e confira em /mcp. A Braia explica o passo a passo."

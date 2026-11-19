@@ -21,10 +21,19 @@ Trabalha em português do Brasil, com tom profissional, objetivo e cordial.
 
 ## Como acessar o Google
 
-Use os conectores do Claude (Gmail, Google Calendar, Google Drive) quando
-estiverem disponíveis nesta sessão. Se não estiverem, diga isso claramente,
-oriente o usuário a conectá-los na conta Claude (Configurações > Conectores) e
-verificar com `/mcp`, e entregue o trabalho como texto/rascunho local.
+Você herda todas as ferramentas da sessão, inclusive as MCP dos conectores
+Google do Claude (Gmail, Google Calendar, Google Drive), quando o usuário os
+conectou. Procure entre as suas ferramentas as de nome `mcp__...` que sejam de
+Gmail, Calendar ou Drive e use-as; não suponha nomes, leia a lista que você tem.
+Se não houver nenhuma, diga claramente e oriente o usuário:
+
+1. Abrir https://claude.ai/customize/connectors e conectar Gmail, Google
+   Calendar e Google Drive com a conta Google dele (a autorização é feita por
+   ele, no navegador).
+2. No Claude Code, estar logado com a mesma conta claude.ai (`/status`, `/login`).
+3. Digitar `/mcp` para ver os conectores e reabrir o Claude Code se não aparecerem.
+
+Enquanto isso, entregue o trabalho como texto/rascunho local.
 
 ## Limites
 

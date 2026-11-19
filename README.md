@@ -1,210 +1,87 @@
-# Braia para Claude Code (local)
+# Braia para Claude Code (agente do seu Claude)
 
-A Braia é uma equipe de agentes que roda dentro do **Claude Code**, no seu
-computador. Ela coordena quatro especialistas:
+A Braia é uma coordenadora de equipe que **vira um agente do seu Claude Code**:
+você digita `/braia`, conversa com ela e ela despacha o trabalho para a equipe.
+Instala em `~/.claude` (nível de usuário), então funciona em **qualquer pasta**.
 
 | Agente | Função |
 |---|---|
-| **Braia** | Coordenadora: recebe o pedido, aciona o especialista certo e entrega o resultado |
+| **Braia** (`/braia`) | Coordenadora: recebe o pedido e aciona o especialista certo |
 | **Isaura** | Secretária: e-mail, agenda, Google Drive e documentos |
 | **Paulo** | Tecnologia: scripts, planilhas, automações e suporte técnico |
 | **Juliana** | Operações: quebra demandas grandes em etapas e cria processos |
 | **Angélica** | Pessoas (opcional): vagas, entrevistas, onboarding e feedback |
 
-## O que é e o que não é
-
-- **É** um conjunto de arquivos de texto (`.claude/agents/*.md` e
-  `.claude/settings.json`) que o Claude Code lê numa pasta.
-- **Não é** um programa, servidor, bot de WhatsApp/Telegram nem serviço na
-  nuvem. Não roda sozinha: funciona enquanto o Claude Code estiver aberto na
-  pasta. Desligou o computador, ela para.
-- **Não** guarda senhas, **não** acessa nada sem o seu login e **não** envia
-  e-mail ou cria evento sem a sua confirmação.
-
 ## Requisitos
 
-1. **Acesso ao Claude Code compatível — a confirmar na documentação oficial**
-   (assinatura ou API são modalidades possíveis; não decidido em reunião).
-2. **Claude Code instalado** pelo instalador oficial
-   ([documentação](https://code.claude.com/docs/en/setup)):
+1. Claude Code instalado ([documentação](https://code.claude.com/docs/en/setup)) e logado na sua conta.
    - macOS/Linux: `curl -fsSL https://claude.ai/install.sh | bash`
    - Windows (PowerShell): `irm https://claude.ai/install.ps1 | iex`
-   - Node.js só é necessário se você preferir instalar pelo npm.
-3. **Google (opcional, para a Isaura):** conecte Gmail, Google Calendar e
-   Google Drive nos **conectores da sua conta Claude**
-   (claude.ai > Configurações > Conectores). Com o Claude Code logado na mesma
-   conta, eles aparecem no comando `/mcp`. Não há chave nem configuração extra
-   neste pacote.
 
-## Instalar
-
-> **Versão `v1.0.0-imersao-19-11`** (commit `e67dc54`). O download pelos endereços abaixo só
-> funciona se o repositório/release estiver público; com o repositório privado,
-> use o pacote .zip/.tar.gz distribuído pela equipe (seção "Sem internet").
-
-A instalação usa sempre uma **versão fixada** (tag), nunca o ramo `main`, e o
-instalador **confere o SHA256 do pacote antes de extrair**: se o hash não bater,
-ele para e não instala nada. Ele não usa sudo/administrador, não altera o PATH e
-não envia dados.
-
-SHA256 publicado desta versão (conferir também no slide da aula):
-
-```
-74f583567e814795b8d8585c4effde7c80c7db161a751c1a0b368bd6a49a71cf  braia-v1.0.0-imersao-19-11.tar.gz
-a517b8171aa5d0e7ea1e14cc4341a64638830ee9c2fb700ef824c004dffd2b3e  braia-v1.0.0-imersao-19-11.zip
-```
-
-### Caminho recomendado: baixar, ler, rodar
+## Instalar (um comando)
 
 macOS / Linux:
 
-```bash
-curl -fsSLo install.sh https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/v1.0.0-imersao-19-11/install.sh
-less install.sh        # leia antes de rodar (q para sair)
-bash install.sh
+```
+curl -fsSL https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/@TAG@/install.sh | bash
 ```
 
 Windows (PowerShell):
 
-```powershell
-irm https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/v1.0.0-imersao-19-11/install.ps1 -OutFile install.ps1
-notepad install.ps1    # leia antes de rodar
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+```
+irm https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/@TAG@/install.ps1 | iex
 ```
 
-O instalador baixado já traz a versão e o SHA256 fixados. Ele baixa o pacote
-daquela versão, confere o hash e só então copia os arquivos. Para conferir o
-pacote você mesmo, baixe `braia-v1.0.0-imersao-19-11.tar.gz` (ou `.zip`) e compare:
-`sha256sum` (Linux), `shasum -a 256` (macOS) ou `Get-FileHash` (Windows).
+O instalador usa a **versão fixada** (`@TAG@`), baixa o pacote e **confere o SHA256
+antes de extrair** (se não bater, para e não instala nada). Não usa sudo/administrador,
+não mexe no PATH, não envia dados. Reexecutar é seguro: arquivos iguais ficam como
+estão; um arquivo seu com o mesmo nome vai para `~/.claude/.braia-backup/` antes de
+ser substituído; seus outros agentes e comandos não são tocados.
 
-### Atalho opcional (sem leitura prévia)
-
-Mesmo instalador e mesma conferência de hash, mas executado direto da internet,
-sem você ler antes. Use só se confiar na origem:
-
-```bash
-curl -fsSL https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/v1.0.0-imersao-19-11/install.sh | bash
-```
-
-```powershell
-irm https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/download/v1.0.0-imersao-19-11/install.ps1 | iex
-```
-
-### Sem internet ou com o pacote já baixado
-
-Extraia `braia-v1.0.0-imersao-19-11.tar.gz`/`.zip` e rode o instalador de dentro da
-pasta extraída (`bash install.sh` ou `.\install.ps1`): ele usa os arquivos ao lado
-e não baixa nada.
-
-O instalador cria a pasta `Braia` na sua pasta pessoal e copia os agentes.
-Pode rodar de novo sem problema: arquivos iguais não são tocados e, se algum
-mudou, a versão anterior vai para `Braia/.braia-backup/<data>-<pid>`.
-
-Opções (a partir de um clone ou download do repositório):
-
-```bash
-bash install.sh ~/OutraPasta     # outra pasta
-bash install.sh --sem-angelica   # sem a Angélica
-```
-
-```powershell
-.\install.ps1 -Destino C:\OutraPasta
-.\install.ps1 -SemAngelica
-```
-
-No Windows, rodar o arquivo `.\install.ps1` baixado pode ser bloqueado pela
-política de execução (ExecutionPolicy). Nesse caso, libere só para esta
-execução, sem mudar a configuração do computador:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
-```
+Instala 6 arquivos: `~/.claude/commands/braia.md` e `~/.claude/agents/{braia,isaura,paulo,juliana,angelica}.md`.
+Opções (baixando o `install.sh`): `--sem-angelica`, `--desinstalar`, pasta de destino como argumento.
 
 ## Usar
 
-```bash
-cd ~/Braia
-claude
+1. Abra o Claude Code em qualquer pasta (`claude`; se já estava aberto, feche e abra).
+2. Digite `/braia` e o pedido, ex.: `/braia quem é a sua equipe?`
+3. Peça trabalho: `/braia peça ao Paulo uma planilha de controle de despesas`.
+4. Google: veja abaixo.
+5. A Braia sempre pede o seu "sim" antes de enviar e-mail, criar evento ou mexer no Drive.
+
+## Google (Gmail, Agenda e Drive) para a Isaura
+
+Os conectores Google do Claude **não são instaláveis por script**: só você autoriza,
+no navegador. A documentação oficial do Claude Code
+([MCP > Use MCP servers from claude.ai](https://code.claude.com/docs/en/mcp#use-mcp-servers-from-claude-ai))
+diz que, logado com conta claude.ai, os conectores que você adicionou no claude.ai
+aparecem automaticamente no Claude Code, e que Gmail e Google Calendar **não
+suportam OAuth local** (`claude mcp add` não serve para eles). Então:
+
+1. Abra https://claude.ai/customize/connectors e conecte **Gmail**, **Google Calendar** e **Google Drive**.
+2. No Claude Code, esteja logado com a mesma conta (`/status`; `/login` se preciso). Conta por chave de API não carrega conectores.
+3. Digite `/mcp`: os conectores aparecem marcados como do claude.ai. Se faltar algum, reabra o Claude Code.
+4. Teste: `/braia peça à Isaura para listar meus compromissos de amanhã`.
+
+A Isaura herda todas as ferramentas da sessão (inclusive as `mcp__...` dos conectores):
+a ficha dela não fixa nomes de ferramenta porque o nome depende do conector na sua conta.
+A própria Braia dá esse passo a passo se o Google não estiver conectado.
+
+## O que é e o que não é
+
+Só arquivos de texto (Markdown) lidos pelo Claude Code. Não é programa, servidor nem
+bot. Não guarda senhas e não acessa nada além do que você conectar.
+
+## Sem internet pelo comando / conferir o pacote
+
+Baixe `install.sh` (ou `install.ps1`) e o pacote da
+[release](https://github.com/superbrainpericiaadm/braia-claude-code-imersao/releases/tag/@TAG@),
+confira com `SHA256SUMS` e rode. SHA256 desta versão:
+
 ```
-
-Na primeira vez, o Claude Code pergunta se você confia na pasta: responda que
-sim (é isso que permite carregar a configuração da Braia). Depois escreva:
-
-> Braia, quem é a sua equipe?
-
-Veja os testes de conferência em [TESTES.md](TESTES.md).
+@SUMS@
+```
 
 ## Desinstalar
 
-```bash
-bash install.sh --desinstalar      # macOS/Linux
-```
-
-```powershell
-.\install.ps1 -Desinstalar         # Windows
-```
-
-Isso move apenas os arquivos da Braia para `Braia/.braia-backup/<data>-<pid>`.
-Seus documentos na pasta ficam intactos. Para remover tudo, apague a pasta
-`Braia` manualmente.
-
-## Recuperação / restaurar backup
-
-O instalador nunca apaga: todo arquivo da Braia que ele substitui ou remove vai
-para uma pasta de backup dentro da própria pasta da Braia.
-
-1. **Onde fica:** `Braia/.braia-backup/<data>-<pid>/`, por exemplo
-   `~/Braia/.braia-backup/20261106-191500-12345/.claude/agents/paulo.md`.
-   `<data>` é ano-mês-dia-hora-minuto-segundo e `<pid>` é o número do processo
-   do instalador; cada execução cria a sua pasta. A mais recente é a última da
-   lista:
-
-   ```bash
-   ls ~/Braia/.braia-backup/
-   ```
-
-   ```powershell
-   Get-ChildItem $HOME\Braia\.braia-backup | Sort-Object Name
-   ```
-
-2. **Restaurar um arquivo** (ex.: a sua versão antiga do `paulo.md`):
-
-   ```bash
-   cd ~/Braia
-   cp .braia-backup/<data>-<pid>/.claude/agents/paulo.md .claude/agents/paulo.md
-   ```
-
-   ```powershell
-   cd $HOME\Braia
-   Copy-Item .braia-backup\<data>-<pid>\.claude\agents\paulo.md .claude\agents\paulo.md
-   ```
-
-3. **Restaurar tudo de um backup** (copia por cima todos os arquivos daquele
-   backup, mantendo a estrutura de pastas):
-
-   ```bash
-   cd ~/Braia
-   cp -R .braia-backup/<data>-<pid>/.claude/. .claude/
-   ```
-
-   ```powershell
-   cd $HOME\Braia
-   Copy-Item -Recurse -Force .braia-backup\<data>-<pid>\.claude\* .claude\
-   ```
-
-4. **Reinstalar a versão original da Braia:** rode o instalador de novo
-   (`bash install.sh` ou `.\install.ps1`, a partir da pasta do pacote). Os
-   arquivos alterados voltam ao original e a versão alterada vai para um
-   backup novo.
-
-Os backups não são apagados automaticamente. Depois de conferir, você pode
-apagar a pasta `.braia-backup` manualmente.
-
-## Estrutura
-
-```
-install.sh / install.ps1     instaladores (só copiam arquivos; conferem SHA256 do pacote)
-tools/gerar-release.sh       uso interno: gera pacote, SHA256SUMS e instaladores fixados
-braia/.claude/settings.json  faz a sessão começar como Braia ("agent": "braia")
-braia/.claude/agents/        braia, isaura, paulo, juliana, angelica
-```
+`bash install.sh --desinstalar` (Windows: `.\install.ps1 -Desinstalar`): os 6 arquivos vão para o backup.

@@ -1,9 +1,10 @@
-﻿# Instala a Braia (equipe de agentes do Claude Code) numa pasta local.
+﻿# Instala a Braia como AGENTE do Claude Code (nível de usuário, em $HOME\.claude):
+# comando /braia + subagentes isaura, paulo, juliana, angelica. Vale em qualquer pasta.
 # Só copia arquivos de texto. Não pede administrador, não altera o PATH, não envia dados.
 #
 # Uso (caminho recomendado: baixar, ler e só então rodar):
 #   powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
-#   .\install.ps1 -Destino C:\Pasta    # instala na pasta indicada
+#   .\install.ps1 -Destino C:\Pasta    # pasta de configuração indicada (padrão: $HOME\.claude)
 #   .\install.ps1 -SemAngelica         # sem a agente opcional Angélica
 #   .\install.ps1 -Desinstalar         # remove os arquivos da Braia (vão para backup)
 #
@@ -13,7 +14,7 @@
 # BRAIA_ARCHIVE (zip já baixado), BRAIA_URL. Destino: BRAIA_DIR. Ver install.sh.
 # Arquivo salvo em UTF-8 com BOM para o Windows PowerShell 5.1 ler os acentos.
 param(
-  [string]$Destino = $(if ($env:BRAIA_DIR) { $env:BRAIA_DIR } else { Join-Path $HOME 'Braia' }),
+  [string]$Destino = $(if ($env:BRAIA_DIR) { $env:BRAIA_DIR } elseif ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { Join-Path $HOME '.claude' }),
   [switch]$SemAngelica,
   [switch]$Desinstalar
 )
@@ -25,12 +26,12 @@ $Sha256Fixo = '<SHA256-A-DEFINIR>'
 $Repo = if ($env:BRAIA_REPO) { $env:BRAIA_REPO } else { 'superbrainpericiaadm/braia-claude-code-imersao' }
 
 $Managed = @(
-  '.claude/settings.json',
-  '.claude/agents/braia.md',
-  '.claude/agents/isaura.md',
-  '.claude/agents/paulo.md',
-  '.claude/agents/juliana.md',
-  '.claude/agents/angelica.md'
+  'commands/braia.md',
+  'agents/braia.md',
+  'agents/isaura.md',
+  'agents/paulo.md',
+  'agents/juliana.md',
+  'agents/angelica.md'
 )
 $Stamp  = (Get-Date -Format 'yyyyMMdd-HHmmss') + "-$PID"
 $Backup = Join-Path $Destino ".braia-backup/$Stamp"
@@ -55,7 +56,7 @@ function Exit-Erro([string]$msg, [int]$code) {
   throw $msg
 }
 
-foreach ($d in @($Destino, (Join-Path $Destino '.claude'), (Join-Path $Destino '.claude/agents'))) {
+foreach ($d in @($Destino, (Join-Path $Destino 'agents'), (Join-Path $Destino 'commands'))) {
   if (Test-Link (Get-Present $d)) { Exit-Erro "$d é um link simbólico ou junção; use uma pasta real." 1 }
 }
 
@@ -111,7 +112,8 @@ try {
     $Src = Get-ChildItem -LiteralPath $Tmp -Directory | ForEach-Object { Join-Path $_.FullName 'braia' } |
       Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
   }
-  if (-not $Src -or -not (Test-Path -LiteralPath (Join-Path $Src '.claude/agents/braia.md'))) {
+  if ($Src) { $Src = Join-Path $Src '.claude' }
+  if (-not $Src -or -not (Test-Path -LiteralPath (Join-Path $Src 'agents/braia.md'))) {
     Exit-Erro 'arquivos da Braia não encontrados na origem.' 1
   }
   # Confere a origem inteira antes de mexer no destino (evita instalação parcial).
@@ -119,13 +121,13 @@ try {
     if (-not (Test-Path -LiteralPath (Join-Path $Src $rel) -PathType Leaf)) { Exit-Erro "origem incompleta, falta $rel." 1 }
   }
 
-  New-Item -ItemType Directory -Force -Path (Join-Path $Destino '.claude/agents') | Out-Null
+  New-Item -ItemType Directory -Force -Path (Join-Path $Destino 'agents'), (Join-Path $Destino 'commands') | Out-Null
   $installed = 0; $unchanged = 0; $backed = 0
   foreach ($rel in $Managed) {
     $dst = Join-Path $Destino $rel
     $srcFile = Join-Path $Src $rel
     $item = Get-Present $dst
-    if ($SemAngelica -and $rel -eq '.claude/agents/angelica.md') {
+    if ($SemAngelica -and $rel -eq 'agents/angelica.md') {
       if ($item) { Backup-File $rel; $backed++ }
       continue
     }
@@ -139,13 +141,15 @@ try {
     $installed++
   }
 
-  Write-Host "Braia instalada em: $Destino"
+  Write-Host "Braia instalada em: $Destino (comando /braia + agentes isaura, paulo, juliana, angelica)"
   Write-Host "  arquivos novos/atualizados: $installed | já iguais: $unchanged | backups: $backed"
   if ($backed -gt 0) { Write-Host "  backup dos arquivos anteriores: $Backup" }
   Write-Host ''
-  Write-Host 'Próximo passo:'
-  Write-Host "  cd `"$Destino`"; claude"
-  Write-Host 'Depois escreva: Braia, quem é a sua equipe?'
+  Write-Host 'Próximo passo (em qualquer pasta):'
+  Write-Host '  claude          # abra o Claude Code (feche e abra de novo se já estava aberto)'
+  Write-Host '  /braia Braia, quem é a sua equipe?'
+  Write-Host 'Google (Gmail, Agenda, Drive): conecte em https://claude.ai/customize/connectors,'
+  Write-Host '  entre no Claude Code com a mesma conta e confira em /mcp. A Braia explica o passo a passo.'
 } finally {
   if ($Tmp -and (Test-Path -LiteralPath $Tmp)) { Remove-Item -LiteralPath $Tmp -Recurse -Force }
 }
